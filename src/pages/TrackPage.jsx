@@ -248,8 +248,8 @@ function Shell({ children, brand }) {
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--paper)', padding: 'calc(18px + var(--sat)) 14px calc(20px + var(--sab))' }}>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>{children}
-        {!brand?.hide_powered && (
-          <div style={{ textAlign: 'center', fontSize: '.72rem', padding: '18px 0 6px' }}>
+        <div style={{ textAlign: 'center', fontSize: '.72rem', padding: '18px 0 6px', display: 'flex', justifyContent: 'center', gap: '12px', alignItems: 'center' }}>
+          {!brand?.hide_powered && (
             <a
               href="https://stellarforgetech.in"
               target="_blank"
@@ -258,8 +258,16 @@ function Shell({ children, brand }) {
             >
               Powered by <span style={{ textDecoration: 'underline' }}>Stellar Forge</span>
             </a>
-          </div>
-        )}
+          )}
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--text-muted)', textDecoration: 'none', borderLeft: !brand?.hide_powered ? '1px solid #cbd5e1' : 'none', paddingLeft: !brand?.hide_powered ? '10px' : 0 }}
+          >
+            Privacy Notice (DPDP)
+          </a>
+        </div>
       </div>
     </div>
   )

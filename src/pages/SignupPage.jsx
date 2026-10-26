@@ -43,6 +43,12 @@ export default function SignupPage() {
         {field('Type of business', 'business_type', { placeholder: 'e.g. masala shop, car dealer, kitchen products' })}
         {field('Google Maps / Instagram / website (optional)', 'ref_link', { placeholder: 'https://' })}
         <input name="company_site" value={f.company_site} onChange={set('company_site')} tabIndex={-1} autoComplete="off" style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true" />
+        <div style={{ margin: '14px 0 10px', fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)' }}>
+          By creating an account, you confirm you are 18+ years of age and acknowledge our{' '}
+          <Link to="/privacy" target="_blank" style={{ color: 'var(--teal)', textDecoration: 'underline' }}>
+            Privacy Policy (DPDP Act, 2023)
+          </Link>.
+        </div>
         {err && <div style={{ color: '#ff8a8a', margin: '8px 0' }}>{err}</div>}
         <button className="btn btn-primary btn-full btn-lg" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' }}>Early access is open — you can start creating orders immediately. If early access slots are full, we review your shop within 1 hour (9 am – 9 pm IST) and message you on WhatsApp.</p>

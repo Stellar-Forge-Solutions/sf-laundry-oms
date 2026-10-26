@@ -89,6 +89,75 @@ export default function CustomersPage() {
     toast('Customer deleted'); load()
   }
 
+  const eraseDataDPDP = async (c) => {
+    if (!guardWrite('Processing DPDP erasure')) return
+    const confirmed = confirm(
+      `🔒 DPDP Right to Erasure Request for “${c.name}”:\n\n` +
+      `This will completely delete this customer and ANONYMIZE all their past orders and bills (replacing personal names, phone, email, and notes).\n\n` +
+      `Are you sure you want to proceed with full data erasure?`
+    )
+    if (!confirmed) return
+
+    setBusy(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    try {
+      const res = await fetch('/api/customer-erasure', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          customer_id: String(c.id).startsWith('ord-') ? null : c.id,
+          phone: c.whatsapp,
+          email: c.email,
+        }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || 'Erasure request failed')
+      toast(`DPDP Erasure complete: ${j.orders_anonymized} orders anonymized`)
+      load()
+    } catch (e) {
+      toast(e.message, 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const exportDataDPDP = async (c) => {
+    if (String(c.id).startsWith('ord-')) {
+      toast('Please save this customer to registry before exporting DPDP data', 'error')
+      return
+    }
+    setBusy(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    try {
+      const res = await fetch('/api/customer-data-export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ customer_id: c.id }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || 'Export request failed')
+      
+      const blob = new Blob([JSON.stringify(j.data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `dpdp_export_${(c.name || 'customer').replace(/\s+/g, '_')}_${Date.now()}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast('DPDP data export downloaded')
+    } catch (e) {
+      toast(e.message, 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const pickFile = async (e) => {
     const file = e.target.files?.[0]; e.target.value = ''
     if (!file) return
@@ -187,9 +256,11 @@ export default function CustomersPage() {
                 </div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div className="flex gap-2 mt-1" style={{ justifyContent: 'flex-end' }}>
+                <div className="flex gap-2 mt-1" style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                   <button className="btn btn-secondary btn-sm" disabled={!canWrite} onClick={() => { setErr(''); setEdit({ ...c }) }}>Edit</button>
+                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--teal)' }} title="Export personal data summary (DPDP Sec 11)" disabled={busy} onClick={() => exportDataDPDP(c)}>Export</button>
                   <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} disabled={!canWrite} onClick={() => del(c)}>Delete</button>
+                  <button className="btn btn-ghost btn-sm" style={{ color: '#e11d48', fontSize: '.75rem' }} title="Erase customer & anonymize orders (DPDP Sec 12)" disabled={!canWrite || busy} onClick={() => eraseDataDPDP(c)}>Erase (DPDP)</button>
                 </div>
               </div>
             </div>

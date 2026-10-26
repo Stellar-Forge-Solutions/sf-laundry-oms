@@ -41,6 +41,7 @@ export default function SettingsPage() {
     category_label: settings.category_label, order_prefix: settings.order_prefix, notify_channel: settings.notify_channel, printer_mode: settings.printer_mode,
     fields: { ...settings.fields }, tax: JSON.parse(JSON.stringify(settings.tax)),
     custom_url: settings.custom_url || '', brand_color: settings.brand_color || '', hide_powered: !!settings.hide_powered,
+    data_retention_months: settings.data_retention_months || 24,
   }))
   const [core, setCore] = useState(() => Object.fromEntries(settings.stages.filter(x => CORE_KEYS.includes(x.key)).map(x => [x.key, x.label])))
   const [extras, setExtras] = useState(() => settings.stages.filter(x => !CORE_KEYS.includes(x.key)))
@@ -150,6 +151,7 @@ export default function SettingsPage() {
     const e2 = (await supabase.from('order_settings').upsert({
       shop_id: shop.id, stages, category_label: s.category_label.trim() || 'Category', notify_channel: s.notify_channel, fields: s.fields, tax: s.tax,
       printer_mode: s.printer_mode, order_prefix: s.order_prefix.trim().toUpperCase(),
+      data_retention_months: Number(s.data_retention_months) || 24,
       ...(can('branding') ? { brand_color: s.brand_color.trim() || null, hide_powered: s.hide_powered } : {}),
       ...(can('customDomain') ? { custom_url: s.custom_url.trim() || null } : {}),
       updated_at: new Date().toISOString(),
@@ -391,6 +393,34 @@ export default function SettingsPage() {
             <a className="btn btn-secondary btn-sm" target="_blank" rel="noopener noreferrer" href={contactUrl('Dedicated infrastructure (Orders Pro)', shop, user)}>
               🏗️ Dedicated infra: contact us
             </a>
+          </div>
+
+          <div className="card" style={{ marginTop: 24, border: '1px solid #cbd5e1' }}>
+            <h3 style={{ fontSize: '1rem', margin: '0 0 6px', fontWeight: 700 }}>Data Privacy & Compliance (DPDP Act, 2023)</h3>
+            <p className="text-muted" style={{ fontSize: '.8rem', margin: '0 0 14px' }}>
+              Compliant with India's Digital Personal Data Protection Act. Orders older than your retention period are anonymized to fulfill storage limitation principles.
+            </p>
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label className="form-label">Personal Data Retention Period</label>
+              <select
+                className="form-input"
+                value={s.data_retention_months}
+                onChange={e => setS({ ...s, data_retention_months: Number(e.target.value) })}
+                style={{ maxWidth: 300 }}
+              >
+                <option value={12}>1 Year (12 months)</option>
+                <option value={24}>2 Years (24 months) — Recommended</option>
+                <option value={36}>3 Years (36 months)</option>
+                <option value={60}>5 Years (60 months — Maximum)</option>
+              </select>
+            </div>
+            <div style={{ fontSize: '.78rem', color: '#64748b', display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <span>Grievance Cell: <b>workwithstellarforge@gmail.com</b></span>
+              <span>&bull;</span>
+              <Link to="/privacy" target="_blank" style={{ color: 'var(--teal)', textDecoration: 'underline' }}>
+                View Privacy Notice
+              </Link>
+            </div>
           </div>
         </>}
 

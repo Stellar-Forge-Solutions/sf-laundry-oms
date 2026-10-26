@@ -63,6 +63,7 @@ export async function onRequestPost({ request, env }) {
     </td></tr>
     <tr><td style="background:#f7f8fa;padding:16px 28px;border-top:1px solid #e2e8f0;font-size:12px;color:#6b7c93;line-height:1.6">
       <b style="color:#0f1923">${esc(shop.name)}</b>${shop.address ? '<br>' + esc(shop.address) : ''}${contact ? '<br>' + contact : ''}${shop.gst_no ? '<br>GSTIN: ' + esc(shop.gst_no) : ''}
+      <br><span style="font-size:11px;color:#94a3b8">This transactional message relates to your requested laundry service. <a href="https://laundry.stellarforgetech.in/privacy" target="_blank" style="color:#64748b;text-decoration:underline">DPDP Privacy Notice</a></span>
       ${s.hide_powered ? '' : '<br><a href="https://stellarforgetech.in" target="_blank" rel="noopener noreferrer" style="color:#8a9ba8;text-decoration:none;font-weight:500">Powered by <span style="text-decoration:underline">Stellar Forge</span></a>'}</td></tr>
   </table></td></tr></table></body></html>`
 

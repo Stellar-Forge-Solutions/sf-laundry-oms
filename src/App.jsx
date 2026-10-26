@@ -16,6 +16,7 @@ import TrackPage from './pages/TrackPage'
 import BillPage from './pages/BillPage'
 import ConnectPrinterPage from './pages/ConnectPrinterPage'
 import BillingPage from './pages/BillingPage'
+import PrivacyPage from './pages/PrivacyPage'
 
 function LoadingScreen() {
   return (
@@ -47,7 +48,7 @@ function Nav() {
   const { pathname } = useLocation()
   const { user, signOut } = useAuth()
   const { shop, role, isOwner } = useShop()
-  if (pathname.startsWith('/track') || pathname.startsWith('/bill/') || !shop || shop.status !== 'approved') return null
+  if (pathname.startsWith('/track') || pathname.startsWith('/bill/') || pathname === '/privacy' || !shop || shop.status !== 'approved') return null
   const displayName = user?.email?.split('@')[0] ?? ''
   return (
     <nav className="nav">
@@ -76,17 +77,26 @@ function Nav() {
 function PoweredBy() {
   const { pathname } = useLocation()
   const { shop, settings } = useShop()
-  if (pathname.startsWith('/track') || pathname.startsWith('/bill/') || !shop || shop.status !== 'approved' || settings?.hide_powered) return null
+  const hideBrand = settings?.hide_powered
+
   return (
-    <div style={{ textAlign: 'center', fontSize: '0.72rem', padding: '14px 0 22px' }}>
-      <a
-        href="https://stellarforgetech.in"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: 'var(--text-muted, #6b7c93)', textDecoration: 'none' }}
+    <div style={{ textAlign: 'center', fontSize: '0.72rem', padding: '14px 0 22px', display: 'flex', justifyContent: 'center', gap: '14px', alignItems: 'center' }}>
+      {!hideBrand && (
+        <a
+          href="https://stellarforgetech.in"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--text-muted, #6b7c93)', textDecoration: 'none' }}
+        >
+          Powered by <span style={{ textDecoration: 'underline' }}>Stellar Forge</span>
+        </a>
+      )}
+      <NavLink
+        to="/privacy"
+        style={{ color: 'var(--text-muted, #6b7c93)', textDecoration: 'none', borderLeft: !hideBrand ? '1px solid #cbd5e1' : 'none', paddingLeft: !hideBrand ? '12px' : 0 }}
       >
-        Powered by <span style={{ textDecoration: 'underline' }}>Stellar Forge</span>
-      </a>
+        Privacy Policy (DPDP)
+      </NavLink>
     </div>
   )
 }
@@ -98,6 +108,7 @@ function AppShell() {
       <Routes>
         <Route path="/track/:token" element={<TrackPage />} />
         <Route path="/bill/:token" element={<BillPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />

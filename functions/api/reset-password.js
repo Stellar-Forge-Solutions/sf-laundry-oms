@@ -80,7 +80,7 @@ export async function onRequestPost({ request, env }) {
     try {
       await sendBrevoMail(env, {
         to: email,
-        subject: `Your Stellar Forge password reset code: ${otp}`,
+        subject: `Your password reset verification code`,
         html,
         fromName: 'Stellar Forge Orders',
       })
