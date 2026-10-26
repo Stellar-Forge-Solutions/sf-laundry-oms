@@ -1,0 +1,90 @@
+// Central plan definitions and AdSense configuration.
+// Source of truth for limits, prices, features, and slot IDs.
+
+export const ADSENSE_CONFIG = {
+  publisherId: '',
+  scriptUrl: '',
+  slots: {},
+}
+
+export const UPGRADE_WHATSAPP = '919270243271'
+
+export const PLANS = {
+  free: {
+    key: 'free',
+    name: 'Free',
+    priceMonthly: 0,
+    priceYearly: 0,
+    includedOrders: Infinity,
+    overageRate: 0.00,
+    ads: false,
+    staffLogins: true,
+    branding: true,
+    customStages: true,
+    customDomain: true,
+    verifiedBadge: true,
+    maxStages: 8,
+    maxStaff: 5,
+    description: 'Dedicated Pro plan environment.',
+    features: [
+      'Unlimited orders included',
+      'No ads anywhere in the dashboard',
+      'Staff logins & multi-user role access',
+      'Shop branding on customer tracking page',
+      'Custom order stages',
+      'Expense Tracker integration',
+    ],
+  },
+  basic: {
+    key: 'basic',
+    name: 'Basic',
+    priceMonthly: 0,
+    priceYearly: 0,
+    includedOrders: Infinity,
+    overageRate: 0.00,
+    ads: false,
+    staffLogins: true,
+    branding: true,
+    customStages: true,
+    customDomain: true,
+    verifiedBadge: true,
+    maxStages: 8,
+    maxStaff: 5,
+    description: 'Dedicated Pro plan environment.',
+    features: [
+      'Unlimited orders included',
+      'No ads anywhere in the dashboard',
+      'Staff logins & multi-user role access',
+      'Shop branding on customer tracking page',
+      'Custom order stages',
+      'Expense Tracker integration',
+    ],
+  },
+  pro: {
+    key: 'pro',
+    name: 'Pro',
+    priceMonthly: 0,
+    priceYearly: 0,
+    includedOrders: Infinity, // or custom limit set by admin
+    overageRate: 0.00,
+    ads: false,
+    staffLogins: true,
+    branding: true,
+    customStages: true,
+    customDomain: true,
+    verifiedBadge: true,
+    maxStages: 8,
+    maxStaff: 5,
+    description: 'Dedicated Pro plan environment with full access.',
+    features: [
+      'Unlimited orders included',
+      'No ads anywhere',
+      'Staff logins & multi-user role access',
+      'Shop branding on customer tracking page (logo, brand color)',
+      'Custom order stages (up to 8, rename & reorder)',
+      'Custom tracking domain (e.g. orders.yourshop.com)',
+      'Verified shop badge',
+      'Expense Tracker integration',
+    ],
+  },
+}
