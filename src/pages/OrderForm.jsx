@@ -269,8 +269,11 @@ export default function OrderForm() {
             bill_updated_at: new Date().toISOString()
           }).eq('id', orderId)
         } else if (billOption === 'upload' && billFile) {
-          const ext = (billFile.name.split('.').pop() || 'pdf').toLowerCase()
-          const path = `${shop.id}/${orderId}/bill-${Date.now()}.${ext}`
+          const rawExt = (billFile.name.split('.').pop() || 'pdf').toLowerCase()
+          const cleanExt = rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'pdf'
+          const cleanShopId = String(shop.id || '').replace(/[^a-zA-Z0-9\-]/g, '')
+          const cleanOrderId = String(orderId || '').replace(/[^a-zA-Z0-9\-]/g, '')
+          const path = `${cleanShopId}/${cleanOrderId}/bill-${Date.now()}.${cleanExt}`
           const up = await supabase.storage.from('order-bills').upload(path, billFile, { contentType: billFile.type || 'application/octet-stream' })
           if (!up.error) {
             await supabase.from('orders').update({ bill_path: path, bill_source: 'uploaded', bill_updated_at: new Date().toISOString() }).eq('id', orderId)

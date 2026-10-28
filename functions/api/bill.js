@@ -13,10 +13,17 @@ export async function onRequestGet({ request, env }) {
 
   // If a physical file was manually uploaded to storage, serve it directly
   if (o.bill_source === 'uploaded' && o.bill_path) {
-    const ext = o.bill_path.split('.').pop()
-    const { data, error } = await sb.storage.from('order-bills').createSignedUrl(o.bill_path, 120, { download: `Bill-${String(o.order_no).padStart(5, '0')}.${ext}` })
-    if (!error && data?.signedUrl) {
-      return new Response(null, { status: 302, headers: { Location: data.signedUrl, 'Cache-Control': 'no-store' } })
+    // Validate path to prevent directory traversal
+    const safePath = String(o.bill_path).trim()
+    if (!safePath.includes('..') && !safePath.startsWith('/') && /^[a-zA-Z0-9\-_/.]+$/.test(safePath)) {
+      const rawExt = safePath.split('.').pop() || 'pdf'
+      const cleanExt = rawExt.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'pdf'
+      const { data, error } = await sb.storage.from('order-bills').createSignedUrl(safePath, 120, {
+        download: `Bill-${String(o.order_no).padStart(5, '0')}.${cleanExt}`
+      })
+      if (!error && data?.signedUrl) {
+        return new Response(null, { status: 302, headers: { Location: data.signedUrl, 'Cache-Control': 'no-store' } })
+      }
     }
   }
 

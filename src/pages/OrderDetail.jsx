@@ -140,7 +140,7 @@ export default function OrderDetail() {
     setBusy('gen')
     try {
       // If there was an uploaded file before, remove it from storage to free space
-      if (o.bill_path) await supabase.storage.from('order-bills').remove([o.bill_path])
+      if (o.bill_path && !o.bill_path.includes('..')) await supabase.storage.from('order-bills').remove([o.bill_path])
       await supabase.from('orders').update({
         bill_path: null,
         bill_source: 'generated',
@@ -153,12 +153,16 @@ export default function OrderDetail() {
   }
 
   async function storeBill(blob, ext, type, source) {
-    const path = `${shop.id}/${o.id}/bill-${Date.now()}.${ext}`
+    const cleanShopId = String(shop.id || '').replace(/[^a-zA-Z0-9\-]/g, '')
+    const cleanOrderId = String(o.id || '').replace(/[^a-zA-Z0-9\-]/g, '')
+    const cleanExt = String(ext || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'pdf'
+    if (!cleanShopId || !cleanOrderId) throw new Error('Invalid shop or order reference')
+    const path = `${cleanShopId}/${cleanOrderId}/bill-${Date.now()}.${cleanExt}`
     const up = await supabase.storage.from('order-bills').upload(path, blob, { contentType: type })
     if (up.error) throw up.error
     const { error } = await supabase.from('orders').update({ bill_path: path, bill_source: source, bill_updated_at: new Date().toISOString() }).eq('id', o.id)
     if (error) throw error
-    if (o.bill_path) await supabase.storage.from('order-bills').remove([o.bill_path])
+    if (o.bill_path && !o.bill_path.includes('..')) await supabase.storage.from('order-bills').remove([o.bill_path])
     await load()
   }
 
@@ -177,7 +181,7 @@ export default function OrderDetail() {
   const del = async () => {
     if (!guardWrite('Deleting orders')) return
     if (!confirm('Delete this order permanently?')) return
-    if (o.bill_path) await supabase.storage.from('order-bills').remove([o.bill_path])
+    if (o.bill_path && !o.bill_path.includes('..')) await supabase.storage.from('order-bills').remove([o.bill_path])
     const { error } = await supabase.from('orders').delete().eq('id', o.id)
     if (error) return toast(error.message, 'error')
     nav('/orders', { replace: true })

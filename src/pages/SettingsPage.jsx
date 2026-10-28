@@ -204,8 +204,10 @@ export default function SettingsPage() {
   const upload = async (e) => {
     const file = e.target.files?.[0]; if (!file) return
     try {
-      const blob = await resizeLogo(file); const path = `${shop.id}/logo-${Date.now()}.png`
-      const up = await supabase.storage.from('logos').upload(path, blob, { contentType: 'image/png' }); if (up.error) throw up.error
+      const blob = await resizeLogo(file)
+      const cleanShopId = String(shop.id || '').replace(/[^a-zA-Z0-9\-]/g, '')
+      const path = `${cleanShopId}/logo-${Date.now()}.png`
+      const up = await supabase.storage.from('logos').upload(path, blob, { contentType: 'image/png' })
       const { error } = await supabase.from('shops').update({ logo_path: path }).eq('id', shop.id); if (error) throw error
       toast('Logo updated'); reload()
     } catch (x) { toast('Logo upload failed: ' + x.message, 'error') }
