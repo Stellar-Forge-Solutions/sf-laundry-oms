@@ -12,17 +12,41 @@ export const DEFAULT_STAGES = [
 ]
 export const MAX_EXTRA_STAGES = 2
 
-// Always: received, processing, [up to 2 extra], ready, delivered, returned
+// Stages order: received, processing, [up to 2 extra], ready, delivered, returned
+// Any core stage can be enabled or disabled based on user configuration.
 export function normStages(list) {
   const src = Array.isArray(list) && list.length ? list : DEFAULT_STAGES
-  const label = (k) => (src.find(s => s.key === k)?.label || DEFAULT_STAGES.find(s => s.key === k).label).trim()
-  const extras = src.filter(s => !CORE_KEYS.includes(s.key) && s.label?.trim()).slice(0, MAX_EXTRA_STAGES)
+
+  // Helper to check if a stage is present and enabled in the input list
+  const isEnabled = (k) => {
+    const item = src.find(s => s.key === k)
+    if (!item) return false
+    return item.enabled !== false
+  }
+
+  const getLabel = (k) => {
+    const item = src.find(s => s.key === k)
+    return (item?.label || DEFAULT_STAGES.find(s => s.key === k)?.label || k).trim()
+  }
+
+  const extras = src.filter(s => !CORE_KEYS.includes(s.key) && s.label?.trim() && s.enabled !== false)
+    .slice(0, MAX_EXTRA_STAGES)
     .map(s => ({ key: s.key, label: s.label.trim() }))
-  return [
-    { key: 'received', label: label('received') }, { key: 'processing', label: label('processing') },
-    ...extras,
-    { key: 'ready', label: label('ready') }, { key: 'delivered', label: label('delivered') }, { key: 'returned', label: label('returned') },
-  ]
+
+  const stages = []
+  if (isEnabled('received')) stages.push({ key: 'received', label: getLabel('received') })
+  if (isEnabled('processing')) stages.push({ key: 'processing', label: getLabel('processing') })
+  stages.push(...extras)
+  if (isEnabled('ready')) stages.push({ key: 'ready', label: getLabel('ready') })
+  if (isEnabled('delivered')) stages.push({ key: 'delivered', label: getLabel('delivered') })
+  if (isEnabled('returned')) stages.push({ key: 'returned', label: getLabel('returned') })
+
+  // Fallback: If fewer than 2 stages are enabled, enforce at least received and delivered
+  if (stages.length < 2) {
+    return DEFAULT_STAGES
+  }
+
+  return stages
 }
 export const stageLabel = (stages, key) => stages.find(s => s.key === key)?.label || key
 export const stageIdx = (stages, key) => Math.max(0, stages.findIndex(s => s.key === key))
