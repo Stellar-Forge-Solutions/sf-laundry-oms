@@ -18,7 +18,7 @@ export default function ProductsPage() {
 
   const load = async () => {
     const all = []
-    for (let p = 0; p < 5; p++) { const { data } = await supabase.from('order_products').select('*').order('name').range(p * 1000, p * 1000 + 999); all.push(...(data || [])); if ((data || []).length < 1000) break }
+    for (let p = 0; p < 5; p++) { const { data } = await supabase.from('order_products').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('name').range(p * 1000, p * 1000 + 999); all.push(...(data || [])); if ((data || []).length < 1000) break }
     setList(all); setLoading(false)
   }
   useEffect(() => { load() }, [])
