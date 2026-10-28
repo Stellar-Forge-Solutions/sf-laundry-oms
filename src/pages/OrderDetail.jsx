@@ -5,7 +5,6 @@ import { useShop } from '../lib/ShopContext'
 import { useToast } from '../components/Toast'
 import ItemSheet from '../components/ItemSheet'
 import NotifyModal from '../components/NotifyModal'
-import TrackingModal from '../components/TrackingModal'
 import DelayModal from '../components/DelayModal'
 import { StageBadge, PayBadge } from '../components/Badges'
 import { guardWrite, logoDataUrl, logoUrl } from '../lib/shop'
@@ -20,7 +19,6 @@ export default function OrderDetail() {
   const stages = settings.stages, f = settings.fields, tax = taxActive(settings)
   const [o, setO] = useState(null), [items, setItems] = useState([]), [events, setEvents] = useState([]), [products, setProducts] = useState([])
   const [sheet, setSheet] = useState(false), [notify, setNotify] = useState(false)
-  const [trackingModal, setTrackingModal] = useState(false)
   const [delayModal, setDelayModal] = useState(false)
   const [pay, setPay] = useState('unpaid'), [paid, setPaid] = useState('')
   const [busy, setBusy] = useState('')
@@ -43,40 +41,14 @@ export default function OrderDetail() {
   const staleBill = o.bill_path && o.bill_source === 'generated' && new Date(o.updated_at) - new Date(o.bill_updated_at || 0) > 2000
 
   // ── actions ──
-  const move = async (target, trackingUrl = null) => {
+  const move = async (target) => {
     if (!guardWrite('Changing status')) return
-    if (target.key === 'ready' && trackingUrl === null && o.stage_key !== 'ready') {
-      return setTrackingModal(true)
-    }
     setBusy('stage')
     const patch = { stage_key: target.key }
-    if (trackingUrl) patch.tracking_url = trackingUrl
-    let { data, error } = await supabase.from('orders').update(patch).eq('id', o.id).select().single()
-    if (error && error.message?.includes('tracking_url')) {
-      // If tracking_url column is not migrated yet in Supabase, update stage_key alone
-      const res = await supabase.from('orders').update({ stage_key: target.key }).eq('id', o.id).select().single()
-      data = res.data; error = res.error
-      if (trackingUrl && !error) {
-        // preserve tracking url inside order notes as fallback
-        const notesWithTracking = (o.notes ? o.notes + '\n' : '') + `Tracking: ${trackingUrl}`
-        await supabase.from('orders').update({ notes: notesWithTracking }).eq('id', o.id)
-      }
-    }
+    const { data, error } = await supabase.from('orders').update(patch).eq('id', o.id).select().single()
     if (error) { setBusy(''); return toast(error.message, 'error') }
     await supabase.from('order_events').insert({ order_id: o.id, shop_id: shop.id, stage_key: target.key, stage_label: target.label })
     setBusy(''); setO(data || { ...o, ...patch }); await load(); setNotify(true)
-  }
-
-  const handleTrackingSave = async (trackingUrl) => {
-    setTrackingModal(false)
-    const readyStage = stages.find(s => s.key === 'ready') || next
-    await move(readyStage, trackingUrl || '')
-  }
-
-  const handleTrackingSkip = async () => {
-    setTrackingModal(false)
-    const readyStage = stages.find(s => s.key === 'ready') || next
-    await move(readyStage, '')
   }
 
   const handleDelaySave = async ({ deliveryDate, reason }) => {
