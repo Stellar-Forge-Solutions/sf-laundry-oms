@@ -34,12 +34,22 @@ create or replace function public.cleanup_expired_data(retention_months integer 
 returns json
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 declare
   cutoff_date timestamptz;
   expired_otp_count integer := 0;
   anonymized_orders_count integer := 0;
 begin
+  -- Defence in depth: only the service role / database owner may run this routine,
+  -- and the retention period must be a sane positive value (never 0 or negative).
+  if coalesce(auth.role(), current_user) not in ('service_role', 'postgres', 'supabase_admin') then
+    raise exception 'insufficient privilege' using errcode = '42501';
+  end if;
+  if retention_months is null or retention_months < 1 then
+    raise exception 'retention_months must be a positive integer' using errcode = '22023';
+  end if;
+
   cutoff_date := now() - (retention_months || ' months')::interval;
 
   -- A. Clean up expired / used password reset OTP tokens older than 24 hours
@@ -55,6 +65,7 @@ begin
       customer_email = null,
       notes = null
   where created_at < cutoff_date
+    and stage_key in ('delivered', 'returned', 'cancelled')
     and customer_name != 'Anonymized (DPDP Retention)';
   get diagnostics anonymized_orders_count = row_count;
 
@@ -66,3 +77,7 @@ begin
   );
 end;
 $$;
+
+-- Newly created functions are executable by PUBLIC by default; restrict to the service role only.
+revoke execute on function public.cleanup_expired_data(integer) from public, anon, authenticated;
+grant execute on function public.cleanup_expired_data(integer) to service_role;
