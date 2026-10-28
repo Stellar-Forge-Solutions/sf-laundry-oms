@@ -104,10 +104,17 @@ grant update (customer_name, customer_whatsapp, customer_email, stage_key, payme
 
 -- Items and history can only be attached to an order of your own shop.
 drop policy order_items_i on order_items; drop policy order_events_i on order_events;
+drop policy order_items_u on order_items; drop policy order_events_u on order_events;
+
 create policy order_items_i on order_items for insert with check (shop_id = current_shop_id() and shop_can_write(shop_id, 'orders')
   and exists (select 1 from orders o where o.id = order_id and o.shop_id = current_shop_id()));
 create policy order_events_i on order_events for insert with check (shop_id = current_shop_id() and shop_can_write(shop_id, 'orders')
   and exists (select 1 from orders o where o.id = order_id and o.shop_id = current_shop_id()));
+
+create policy order_items_u on order_items for update using (shop_id = current_shop_id() and shop_can_write(shop_id, 'orders'))
+  with check (shop_id = current_shop_id() and exists (select 1 from orders o where o.id = order_id and o.shop_id = current_shop_id()));
+create policy order_events_u on order_events for update using (shop_id = current_shop_id() and shop_can_write(shop_id, 'orders'))
+  with check (shop_id = current_shop_id() and exists (select 1 from orders o where o.id = order_id and o.shop_id = current_shop_id()));
 
 -- Home page totals (security invoker: only the caller's shop is visible).
 create function orders_summary(p_from timestamptz, p_to timestamptz) returns table (stage_key text, n bigint, total numeric, paid numeric)
