@@ -7,7 +7,7 @@ import { useToast } from '../components/Toast'
 import PlanCard from '../components/PlanCard'
 import { logoUrl } from '../lib/shop'
 import { contactUrl, upgradeUrl } from '../lib/planHelper'
-import { CORE_KEYS, normStages } from '../lib/orderUtils'
+import { CORE_KEYS, DEFAULT_STAGES, normStages } from '../lib/orderUtils'
 
 const SHOP_KEYS = ['name', 'tagline', 'address', 'mobile', 'whatsapp', 'gst_no', 'website', 'thank_you']
 const FIELD_LABELS = [
@@ -45,7 +45,18 @@ export default function SettingsPage() {
     reset_order_no: !!settings.reset_order_no,
     max_order_no: settings.max_order_no || 1000,
   }))
-  const [core, setCore] = useState(() => Object.fromEntries(settings.stages.filter(x => CORE_KEYS.includes(x.key)).map(x => [x.key, x.label])))
+  const [core, setCore] = useState(() => {
+    const res = {}
+    for (const k of CORE_KEYS) {
+      const match = settings.stages.find(x => x.key === k)
+      const defLabel = DEFAULT_STAGES.find(x => x.key === k)?.label || k
+      res[k] = {
+        label: match?.label || defLabel,
+        enabled: match ? match.enabled !== false : true,
+      }
+    }
+    return res
+  })
   const [extras, setExtras] = useState(() => settings.stages.filter(x => !CORE_KEYS.includes(x.key)))
   const [busy, setBusy] = useState(false)
 
@@ -134,8 +145,14 @@ export default function SettingsPage() {
     if (!sf.name.trim()) return toast('Shop name is required', 'error')
     const mobile = sf.mobile.replace(/\D/g, '').slice(-10)
     if (mobile.length !== 10) return toast('Enter a 10-digit mobile number', 'error')
-    const labels = [...Object.values(core), ...extras.map(x => x.label)]
-    if (labels.some(l => !l.trim() || l.trim().length > 30)) return toast('Every status needs a name (up to 30 characters)', 'error')
+
+    const activeCore = Object.entries(core).filter(([_, conf]) => conf.enabled)
+    if (activeCore.length + extras.length < 2) {
+      return toast('At least 2 order statuses must remain enabled', 'error')
+    }
+
+    const labels = [...activeCore.map(([_, conf]) => conf.label), ...extras.map(x => x.label)]
+    if (labels.some(l => !l.trim() || l.trim().length > 30)) return toast('Every enabled status needs a name (up to 30 characters)', 'error')
     if (new Set(labels.map(l => l.trim().toLowerCase())).size !== labels.length) return toast('Status names must be different from each other', 'error')
     if (s.fields.tax && !['cgst', 'sgst', 'igst'].some(k => s.tax[k].on)) return toast('Tax is on: tick at least one tax (CGST, SGST or IGST)', 'error')
     for (const k of ['cgst', 'sgst', 'igst']) { const p = Number(s.tax[k].pct); if (s.tax[k].on && !(p >= 0 && p <= 100)) return toast(`${k.toUpperCase()} percent must be between 0 and 100`, 'error') }
@@ -147,9 +164,24 @@ export default function SettingsPage() {
     if (s.custom_url && !/^https:\/\/[^\s]+$/i.test(s.custom_url.trim())) return toast('Custom URL must start with https://', 'error')
     setBusy(true)
 
-    const stages = normStages([...Object.entries(core).map(([key, label]) => ({ key, label })), ...extras])
-    const removed = settings.stages.filter(x => !CORE_KEYS.includes(x.key) && !stages.some(n => n.key === x.key))
-    for (const r of removed) await supabase.from('orders').update({ stage_key: 'processing' }).eq('stage_key', r.key).eq('shop_id', shop.id)   // orders in a deleted stage fall back to Processing
+    const stagePayload = [
+      ...Object.entries(core).map(([key, conf]) => ({ key, label: conf.label.trim(), enabled: !!conf.enabled })),
+      ...extras.map(x => ({ key: x.key, label: x.label.trim(), enabled: true })),
+    ]
+    const stages = normStages(stagePayload)
+
+    // Migrate orders that were in now-disabled or deleted stages back to the first active stage
+    const newlyDisabledKeys = Object.keys(core).filter(k => !core[k].enabled)
+    const removedExtraKeys = settings.stages.filter(x => !CORE_KEYS.includes(x.key) && !stages.some(n => n.key === x.key)).map(x => x.key)
+    const allRemovedKeys = [...new Set([...newlyDisabledKeys, ...removedExtraKeys])]
+
+    const fallbackStageKey = stages[0]?.key || 'processing'
+    for (const rk of allRemovedKeys) {
+      await supabase.from('orders')
+        .update({ stage_key: fallbackStageKey })
+        .eq('stage_key', rk)
+        .eq('shop_id', shop.id)
+    }
 
     const clean = (v) => (typeof v === 'string' ? v.trim() || null : v)
     const shopRow = { ...Object.fromEntries(SHOP_KEYS.map(k => [k, clean(sf[k])])), name: sf.name.trim(), mobile, whatsapp: (sf.whatsapp || mobile).replace(/\D/g, '').slice(-10), thank_you: sf.thank_you.trim() || 'Thank you!', paper_width: Number(paper) }
@@ -287,10 +319,32 @@ export default function SettingsPage() {
           {logo && <img src={logo} alt="" style={{ height: 60, display: 'block', marginBottom: 8 }} />}
           <input type="file" accept="image/*" onChange={upload} disabled={!canWrite || isStaff} /></div>
 
-        <H sub={can('customStages') ? "Rename them to suit your shop. You can add up to 3 more stages (max 8 stages total)." : "Default 5 order stages. Customizing and adding stages (up to 8) is a Pro feature."}>
+        <H sub={can('customStages') ? "Enable or disable statuses to suit your shop workflow. Rename or add up to 3 more stages (max 8 stages total)." : "Default order stages. Customizing, renaming and adding stages is a Pro feature."}>
           Order statuses {!can('customStages') && <span className="pro-tag">PRO</span>}
         </H>
-        {[['received', '1'], ['processing', '2']].map(([k, n]) => <div className="form-group" key={k}><label className="form-label">Status {n}</label><input className="form-input" maxLength={30} value={core[k]} onChange={e => setCore({ ...core, [k]: e.target.value })} disabled={isStaff || !can('customStages')} /></div>)}
+        {[['received', 'Received (Intake)'], ['processing', 'Processing']].map(([k, desc]) => (
+          <div className="form-group" key={k} style={{ opacity: core[k].enabled ? 1 : 0.6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <label className="toggle-row" style={{ margin: 0, fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  checked={core[k].enabled}
+                  onChange={e => setCore({ ...core, [k]: { ...core[k], enabled: e.target.checked } })}
+                  disabled={isStaff || !can('customStages')}
+                />
+                {desc}
+              </label>
+              {!core[k].enabled && <span className="text-muted" style={{ fontSize: '.75rem' }}>(Disabled)</span>}
+            </div>
+            <input
+              className="form-input"
+              maxLength={30}
+              value={core[k].label}
+              onChange={e => setCore({ ...core, [k]: { ...core[k], label: e.target.value } })}
+              disabled={isStaff || !can('customStages') || !core[k].enabled}
+            />
+          </div>
+        ))}
         {extras.map((x, i) => (
           <div className="form-group" key={x.key}><label className="form-label">Extra status {i + 1}</label>
             <div className="flex gap-2"><input className="form-input" maxLength={30} placeholder="e.g. Packing" value={x.label} onChange={e => setExtras(extras.map(y => y.key === x.key ? { ...y, label: e.target.value } : y))} disabled={isStaff || !can('customStages')} />
@@ -298,13 +352,35 @@ export default function SettingsPage() {
         {extras.length < maxExtraStages && !isStaff && can('customStages') && <button className="btn btn-secondary btn-sm" style={{ marginBottom: 12 }} onClick={addExtra}>+ Add a status after Processing</button>}
         {!can('customStages') && (
           <div style={{ fontSize: '.78rem', color: 'var(--text-muted)', marginBottom: 12 }}>
-            Custom stages (rename, add up to 8 stages, reorder) is a Pro feature.{' '}
+            Custom stages (rename, enable/disable, add up to 8 stages, reorder) is a Pro feature.{' '}
             <a href={contactUrl('Custom stages (Orders Pro)', shop, user)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal-dark)', fontWeight: 600 }}>
               Contact us on WhatsApp ↗
             </a>
           </div>
         )}
-        {[['ready', '3'], ['delivered', '4'], ['returned', '5']].map(([k, n]) => <div className="form-group" key={k}><label className="form-label">Status {n + (extras.length ? ` (+${extras.length})` : '')}</label><input className="form-input" maxLength={30} value={core[k]} onChange={e => setCore({ ...core, [k]: e.target.value })} disabled={isStaff || !can('customStages')} /></div>)}
+        {[['ready', 'Ready to Dispatch'], ['delivered', 'Delivered (Completed)'], ['returned', 'Returned']].map(([k, desc]) => (
+          <div className="form-group" key={k} style={{ opacity: core[k].enabled ? 1 : 0.6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <label className="toggle-row" style={{ margin: 0, fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  checked={core[k].enabled}
+                  onChange={e => setCore({ ...core, [k]: { ...core[k], enabled: e.target.checked } })}
+                  disabled={isStaff || !can('customStages')}
+                />
+                {desc}
+              </label>
+              {!core[k].enabled && <span className="text-muted" style={{ fontSize: '.75rem' }}>(Disabled)</span>}
+            </div>
+            <input
+              className="form-input"
+              maxLength={30}
+              value={core[k].label}
+              onChange={e => setCore({ ...core, [k]: { ...core[k], label: e.target.value } })}
+              disabled={isStaff || !can('customStages') || !core[k].enabled}
+            />
+          </div>
+        ))}
 
         <H>Names</H>
         <div className="grid2">
