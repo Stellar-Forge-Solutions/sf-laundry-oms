@@ -26,20 +26,21 @@ export async function onRequestPost({ request, env }) {
   const { data: { user } } = await sb.auth.getUser(token)
   if (!user) return json({ error: 'Not signed in' }, 401)
 
-  const { data: shop } = await sb.from('shops').select('id, status').eq('owner_id', user.id).maybeSingle()
+  const { data: shop } = await sb.from('shops').select('id, status, plan').eq('owner_id', user.id).maybeSingle()
   if (!shop) return json({ error: 'Only the shop owner can add staff' }, 403)
   if (shop.status !== 'approved') return json({ error: 'Shop is not approved' }, 403)
 
-  // Strictly paid Pro plan only (no trial access for staff logins)
+  // Verify Pro plan access (shop.plan or entitlements)
   const { data: ent } = await sb
     .from('entitlements')
-    .select('plan, paid_until')
+    .select('plan, paid_until, trial_ends_at')
     .eq('shop_id', shop.id)
     .eq('product', 'orders')
     .maybeSingle()
 
-  const isPaidPro = !!ent && ent.plan === 'pro' && !!ent.paid_until && new Date(ent.paid_until) > new Date()
-  if (!isPaidPro) {
+  const isPro = (shop.plan || ent?.plan || 'pro').toLowerCase() === 'pro'
+  const isExpired = ent?.paid_until && new Date(ent.paid_until) < new Date()
+  if (!isPro || isExpired) {
     return json({ error: 'Staff accounts are exclusively available on the paid Pro plan. Please upgrade to Pro on WhatsApp.' }, 403)
   }
 
