@@ -104,6 +104,7 @@ begin
   return null;
 end $$;
 create trigger bills_sync_sales after insert or delete or update of status, total_amount, billing_date on bills for each row execute function trg_bills_sync_sales();
+revoke execute on function sync_billing_sales(uuid, date), trg_bills_sync_sales() from public, anon, authenticated;
 
 -- Shop owner switches the billing -> sales link on/off (Expense Tracker > Settings). Turning on back-fills past bills.
 create function set_sales_sync(p_on boolean) returns void language plpgsql security definer set search_path = public as $$

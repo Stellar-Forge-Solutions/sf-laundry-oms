@@ -174,6 +174,9 @@ BEGIN
 END;
 $$;
 
+-- Secure snapshot function from public/authenticated RPC execution
+REVOKE EXECUTE ON FUNCTION snapshot_shop_metrics(uuid, text, text) FROM public, anon, authenticated;
+
 -- 4. Admin overview view: all shops, current month metrics
 --    Use via service role (bypasses RLS)
 CREATE OR REPLACE VIEW v_shop_metrics_latest AS
