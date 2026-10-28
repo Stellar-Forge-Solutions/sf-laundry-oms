@@ -35,7 +35,7 @@ export default function OrderForm() {
   const [overageConfirmed, setOverageConfirmed] = useState(false)
 
   useEffect(() => {
-    supabase.from('order_products').select('*').order('name').limit(1000).then(({ data }) => setProducts(data || []))
+    supabase.from('order_products').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('name').limit(1000).then(({ data }) => setProducts(data || []))
 
     ;(async () => {
       const custMap = new Map()

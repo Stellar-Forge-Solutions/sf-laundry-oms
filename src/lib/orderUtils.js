@@ -156,7 +156,12 @@ export function waNumber(v) {            // 10 digits -> add India code; longer 
   const d = String(v || '').replace(/\D/g, '')
   return d.length === 10 ? '91' + d : d.length > 10 ? d : ''
 }
-export const appBase = (settings) => (settings?.custom_url?.trim() ? settings.custom_url.trim().replace(/\/+$/, '') : window.location.origin)
+export const appBase = (settings) => {
+  const raw = settings?.custom_url?.trim()
+  // Only accept http(s) origins to prevent javascript: / data: URL injection
+  if (raw && /^https?:\/\//i.test(raw)) return raw.replace(/\/+$/, '')
+  return window.location.origin
+}
 export const trackUrl = (o, settings) => `${appBase(settings)}/track/${o.token}`
 export const billUrl = (o, settings) => (o.bill_path || o.bill_source === 'generated' ? `${appBase(settings)}/api/bill?t=${o.token}` : '')
 

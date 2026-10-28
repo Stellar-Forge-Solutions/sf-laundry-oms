@@ -34,7 +34,7 @@ export default function OrderDetail() {
     if (!ord) return nav('/orders', { replace: true })
     setO(ord); setItems(its || []); setEvents(ev || []); setPay(ord.payment_status); setPaid(Number(ord.amount_paid) ? String(ord.amount_paid) : '')
   }, [id])
-  useEffect(() => { load(); supabase.from('order_products').select('*').order('name').limit(1000).then(({ data }) => setProducts(data || [])) }, [load])
+  useEffect(() => { load(); supabase.from('order_products').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('name').limit(1000).then(({ data }) => setProducts(data || [])) }, [load])
   useEffect(() => { if (o && sp.get('notify')) { setNotify(true); setSp({}, { replace: true }) } }, [o])
 
   if (!o) return <div className="page"><div className="empty-state">Loading…</div></div>
