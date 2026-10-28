@@ -95,13 +95,16 @@ export default function OrdersPage() {
               <div style={{ textAlign: 'right' }}>
                 <b>{inr(o.total)}</b>
                 {(o.bill_path || o.bill_source === 'generated') && (
-                  <span
+                  <a
                     className="badge"
-                    style={{ marginLeft: 6, background: 'var(--teal-glow)', color: 'var(--teal-dark)', fontSize: '.72rem', cursor: 'pointer' }}
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(billUrl(o, settings), '_blank') }}
+                    style={{ marginLeft: 6, background: 'var(--teal-glow)', color: 'var(--teal-dark)', fontSize: '.72rem', cursor: 'pointer', textDecoration: 'none' }}
+                    href={billUrl(o, settings)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
                   >
                     🧾 Bill
-                  </span>
+                  </a>
                 )}
               </div>
             </div>
@@ -128,14 +131,17 @@ export default function OrdersPage() {
             <td style={{ textAlign: 'right' }}><b>{inr(o.total)}</b></td>
             <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
               {(o.bill_path || o.bill_source === 'generated') && (
-                <button
+                <a
                   className="btn btn-ghost btn-sm"
-                  style={{ padding: '4px 8px', fontSize: '.75rem', minHeight: 28 }}
+                  style={{ padding: '4px 8px', fontSize: '.75rem', minHeight: 28, display: 'inline-flex', alignItems: 'center' }}
                   title="View / Download bill"
-                  onClick={(e) => { e.stopPropagation(); window.open(billUrl(o, settings), '_blank') }}
+                  href={billUrl(o, settings)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
                 >
                   🧾 Bill
-                </button>
+                </a>
               )}
             </td>
           </tr>))}</tbody></table></div></div>}
