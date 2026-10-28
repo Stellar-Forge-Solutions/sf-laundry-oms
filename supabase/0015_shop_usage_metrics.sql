@@ -174,6 +174,16 @@ BEGIN
 END;
 $$;
 
+-- Restrict execution: this SECURITY DEFINER function accepts an arbitrary shop UUID and
+-- writes to shop_monthly_metrics with definer privileges, so it must never be callable by
+-- API-facing roles. PostgreSQL grants EXECUTE to PUBLIC by default; revoke it explicitly
+-- and permit only the service role (cron / admin scripts) and the owning role.
+REVOKE ALL ON FUNCTION snapshot_shop_metrics(uuid, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION snapshot_shop_metrics(uuid, text, text) FROM anon;
+REVOKE ALL ON FUNCTION snapshot_shop_metrics(uuid, text, text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION snapshot_shop_metrics(uuid, text, text) TO service_role;
+
+
 -- 4. Admin overview view: all shops, current month metrics
 --    Use via service role (bypasses RLS)
 CREATE OR REPLACE VIEW v_shop_metrics_latest AS
