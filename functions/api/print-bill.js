@@ -32,7 +32,8 @@ export async function onRequestGet({ request, env }) {
   const set = mergeSettings(st)
   const W = s.paper_width === 80 ? 48 : 32, N = W - 23
   const SOLID = '='.repeat(W), DASH = '-'.repeat(W)
-  const no = set.order_prefix + String(o.order_no).padStart(5, '0')
+  const padLen = (set.reset_order_no && set.max_order_no) ? Math.max(2, String(set.max_order_no).length) : 5
+  const no = set.order_prefix + String(o.order_no).padStart(padLen, '0')
   const money = (n) => Number(n).toFixed(2)
   const rows = []
 

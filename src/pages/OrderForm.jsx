@@ -50,8 +50,13 @@ export default function OrderForm() {
         const { data: oData } = await supabase.from('orders').select('customer_name, customer_whatsapp, customer_email').order('created_at', { ascending: false }).limit(200)
         ;(oData || []).forEach(o => {
           const k = (o.customer_name || '').trim().toLowerCase()
-          if (k && !custMap.has(k)) {
-            custMap.set(k, { name: o.customer_name.trim(), whatsapp: o.customer_whatsapp || '', email: o.customer_email || '' })
+          if (k) {
+            const existing = custMap.get(k)
+            if (!existing) {
+              custMap.set(k, { name: o.customer_name.trim(), whatsapp: o.customer_whatsapp || '', email: o.customer_email || '' })
+            } else if (!existing.whatsapp && o.customer_whatsapp) {
+              existing.whatsapp = o.customer_whatsapp
+            }
           }
         })
       } catch {}
@@ -210,10 +215,13 @@ export default function OrderForm() {
     // Autosave customer details
     try {
       const custName = c.name.trim()
-      const foundCust = customers.find(x => x.name.toLowerCase() === custName.toLowerCase())
+      const custPhone = c.whatsapp ? digits10(c.whatsapp) : null
+      const foundCust = (custPhone && customers.find(x => digits10(x.whatsapp) === custPhone))
+        || customers.find(x => x.name.toLowerCase() === custName.toLowerCase())
+
       const cData = {
         name: custName,
-        whatsapp: c.whatsapp ? digits10(c.whatsapp) : null,
+        whatsapp: custPhone,
         email: c.email.trim().toLowerCase() || null,
         shop_id: shop.id,
       }
@@ -278,16 +286,41 @@ export default function OrderForm() {
     nav(`/orders/${orderId}${id ? '' : '?notify=1'}`, { replace: true })
   }
 
+  const phoneDigits = digits10(c.whatsapp)
+  const phoneSuggestions = (phoneDigits
+    ? customers.filter(x => digits10(x.whatsapp).includes(phoneDigits))
+    : customers.filter(x => !!x.whatsapp)
+  ).slice(0, 8)
+
   const custQuery = (c.name || '').trim().toLowerCase()
   const customerSuggestions = (custQuery
     ? customers.filter(x => x.name.toLowerCase().includes(custQuery))
     : customers
   ).slice(0, 8)
+
   const pickCustomer = (cust) => {
     setC({
       name: cust.name,
       whatsapp: cust.whatsapp || '',
       email: cust.email || '',
+    })
+  }
+
+  const onPhoneChange = (val) => {
+    const d = digits10(val)
+    setC(prev => {
+      // If user typed/pasted a complete 10-digit number, check for instant match
+      if (d.length === 10) {
+        const match = customers.find(x => digits10(x.whatsapp) === d)
+        if (match) {
+          return {
+            name: match.name || prev.name,
+            whatsapp: match.whatsapp || val,
+            email: match.email || prev.email,
+          }
+        }
+      }
+      return { ...prev, whatsapp: val }
     })
   }
 
@@ -378,29 +411,64 @@ export default function OrderForm() {
 
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="section-title" style={{ marginBottom: 12 }}>Customer</div>
+
+        {/* WhatsApp / Mobile number first */}
         <div className="form-group">
-          <label className="form-label">Name *</label>
-          <input className="form-input" placeholder="e.g. Ravi Kumar" value={c.name} onChange={e => setC({ ...c, name: e.target.value })} />
-          {customerSuggestions.length > 0 && (
+          <label className="form-label">WhatsApp / Phone *</label>
+          <input
+            className="form-input"
+            inputMode="numeric"
+            placeholder="10-digit mobile number"
+            value={c.whatsapp}
+            onChange={e => onPhoneChange(e.target.value)}
+            autoFocus={!id}
+          />
+          {phoneSuggestions.length > 0 && (
             <div className="suggestion-wrap">
-              <div className="suggestion-label">{custQuery ? 'Matching customers' : 'Recent customers'}</div>
+              <div className="suggestion-label">{phoneDigits ? 'Matching numbers' : 'Recent customer numbers'}</div>
               <div className="suggestion-pills">
-                {customerSuggestions.map((cust, i) => (
-                  <button key={cust.id || cust.name || i} type="button" className="suggestion-pill" onClick={() => pickCustomer(cust)}>
-                    {cust.name}
+                {phoneSuggestions.map((cust, i) => (
+                  <button key={cust.id || cust.whatsapp || i} type="button" className="suggestion-pill" onClick={() => pickCustomer(cust)}>
+                    📞 {cust.whatsapp} {cust.name ? `(${cust.name})` : ''}
                   </button>
                 ))}
               </div>
             </div>
           )}
         </div>
-        <div className="grid2">
-          <div className="form-group"><label className="form-label">WhatsApp (optional)</label><input className="form-input" inputMode="numeric" placeholder="10-digit number" value={c.whatsapp} onChange={e => setC({ ...c, whatsapp: e.target.value })} /></div>
-          <div className="form-group"><label className="form-label">Email (optional)</label><input className="form-input" type="email" value={c.email} onChange={e => setC({ ...c, email: e.target.value })} /></div>
+
+        {/* Customer Name second */}
+        <div className="form-group">
+          <label className="form-label">Customer Name *</label>
+          <input
+            className="form-input"
+            placeholder="e.g. Ravi Kumar"
+            value={c.name}
+            onChange={e => setC({ ...c, name: e.target.value })}
+          />
+          {customerSuggestions.length > 0 && !c.whatsapp && (
+            <div className="suggestion-wrap">
+              <div className="suggestion-label">{custQuery ? 'Matching customers' : 'Recent customers'}</div>
+              <div className="suggestion-pills">
+                {customerSuggestions.map((cust, i) => (
+                  <button key={cust.id || cust.name || i} type="button" className="suggestion-pill" onClick={() => pickCustomer(cust)}>
+                    {cust.name} {cust.whatsapp ? `· ${cust.whatsapp}` : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-        <div className="form-group" style={{ marginTop: 8 }}>
-          <label className="form-label">Expected Delivery Date (optional)</label>
-          <input className="form-input" type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
+
+        <div className="grid2">
+          <div className="form-group">
+            <label className="form-label">Email (optional)</label>
+            <input className="form-input" type="email" placeholder="name@example.com" value={c.email} onChange={e => setC({ ...c, email: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Expected Delivery Date (optional)</label>
+            <input className="form-input" type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
+          </div>
         </div>
       </div>
 

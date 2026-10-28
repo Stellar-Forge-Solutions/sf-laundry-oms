@@ -46,6 +46,8 @@ export const DEFAULT_SETTINGS = {
   tax: { cgst: { on: false, pct: 9 }, sgst: { on: false, pct: 9 }, igst: { on: false, pct: 18 } },
   printer_mode: 'thermal', order_prefix: 'ORD-', custom_url: '', brand_color: '', hide_powered: false,
   data_retention_months: 24,
+  reset_order_no: false,
+  max_order_no: 1000,
 }
 export function mergeSettings(row) {
   const r = row || {}
@@ -121,7 +123,10 @@ export const itemRow = (it) => {
 }
 
 // ── Names, phone numbers, links ───────────────────────────
-export const orderNo = (o, s) => (s?.order_prefix ?? 'ORD-') + String(o.order_no || 0).padStart(5, '0')
+export const orderNo = (o, s) => {
+  const padLen = (s?.reset_order_no && s?.max_order_no) ? Math.max(2, String(s.max_order_no).length) : 5
+  return (s?.order_prefix ?? 'ORD-') + String(o?.order_no || 0).padStart(padLen, '0')
+}
 export const digits10 = (v) => String(v || '').replace(/\D/g, '').slice(-10)
 export function waNumber(v) {            // 10 digits -> add India code; longer numbers are kept as typed
   const d = String(v || '').replace(/\D/g, '')
