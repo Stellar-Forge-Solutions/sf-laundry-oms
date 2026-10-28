@@ -106,8 +106,9 @@ export function printNormal({ order, items, shop, settings, logoUrl }) {
   <table class="tot">${totals}<tr class="grand"><td>TOTAL</td><td class="r">${rs(order.total)}</td></tr>
   <tr><td>Payment</td><td class="r">${PAY[order.payment_status].label}</td></tr>${order.payment_status === 'partial' ? `<tr><td>Received</td><td class="r">${rs(order.amount_paid)}</td></tr><tr><td><b>Balance due</b></td><td class="r"><b>${rs(balanceDue(order))}</b></td></tr>` : ''}</table>
   <p style="margin-top:30px;text-align:center" class="s">${esc(shop.thank_you || 'Thank you for your business!')}</p>
-  <script>window.onload=function(){setTimeout(function(){window.print()},350)}<\/script></body></html>`
+  </body></html>`
   const w = window.open('', '_blank')
   if (!w) { alert('Please allow pop-ups to print.'); return }
   w.document.open(); w.document.write(html); w.document.close()
+  setTimeout(() => { try { w.print() } catch {} }, 350)
 }
