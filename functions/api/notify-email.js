@@ -33,7 +33,8 @@ export async function onRequestPost({ request, env }) {
   const s = mergeSettings(st)
   const base = (s.custom_url || env.APP_URL || '').replace(/\/+$/, '')
   if (!base) return json({ error: 'APP_URL is not configured on the server' }, 500)
-  const label = stageLabel(s.stages, o.stage_key), no = s.order_prefix + String(o.order_no).padStart(5, '0')
+  const padLen = (s.reset_order_no && s.max_order_no) ? Math.max(2, String(s.max_order_no).length) : 5
+  const label = stageLabel(s.stages, o.stage_key), no = s.order_prefix + String(o.order_no).padStart(padLen, '0')
   const track = `${base}/track/${o.token}`, bill = (o.bill_path || o.bill_source === 'generated') ? `${base}/api/bill?t=${o.token}` : null
   const color = /^#[0-9a-f]{6}$/i.test(s.brand_color || '') ? s.brand_color : '#00a88c'
   const logo = shop.logo_path ? `${env.SUPABASE_URL}/storage/v1/object/public/logos/${shop.logo_path}` : null

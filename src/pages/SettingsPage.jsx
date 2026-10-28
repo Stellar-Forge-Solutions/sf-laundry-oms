@@ -42,6 +42,8 @@ export default function SettingsPage() {
     fields: { ...settings.fields }, tax: JSON.parse(JSON.stringify(settings.tax)),
     custom_url: settings.custom_url || '', brand_color: settings.brand_color || '', hide_powered: !!settings.hide_powered,
     data_retention_months: settings.data_retention_months || 24,
+    reset_order_no: !!settings.reset_order_no,
+    max_order_no: settings.max_order_no || 1000,
   }))
   const [core, setCore] = useState(() => Object.fromEntries(settings.stages.filter(x => CORE_KEYS.includes(x.key)).map(x => [x.key, x.label])))
   const [extras, setExtras] = useState(() => settings.stages.filter(x => !CORE_KEYS.includes(x.key)))
@@ -138,6 +140,10 @@ export default function SettingsPage() {
     if (s.fields.tax && !['cgst', 'sgst', 'igst'].some(k => s.tax[k].on)) return toast('Tax is on: tick at least one tax (CGST, SGST or IGST)', 'error')
     for (const k of ['cgst', 'sgst', 'igst']) { const p = Number(s.tax[k].pct); if (s.tax[k].on && !(p >= 0 && p <= 100)) return toast(`${k.toUpperCase()} percent must be between 0 and 100`, 'error') }
     if (!/^[A-Za-z0-9-]{0,8}$/.test(s.order_prefix)) return toast('Order prefix: up to 8 letters, digits or -', 'error')
+    if (s.reset_order_no) {
+      const maxNo = Number(s.max_order_no)
+      if (!maxNo || maxNo < 10 || maxNo > 1000000) return toast('Max order number before reset must be between 10 and 1,000,000', 'error')
+    }
     if (s.custom_url && !/^https:\/\/[^\s]+$/i.test(s.custom_url.trim())) return toast('Custom URL must start with https://', 'error')
     setBusy(true)
 
@@ -152,6 +158,8 @@ export default function SettingsPage() {
       shop_id: shop.id, stages, category_label: s.category_label.trim() || 'Category', notify_channel: s.notify_channel, fields: s.fields, tax: s.tax,
       printer_mode: s.printer_mode, order_prefix: s.order_prefix.trim().toUpperCase(),
       data_retention_months: Number(s.data_retention_months) || 24,
+      reset_order_no: !!s.reset_order_no,
+      max_order_no: Number(s.max_order_no) || 1000,
       ...(can('branding') ? { brand_color: s.brand_color.trim() || null, hide_powered: s.hide_powered } : {}),
       ...(can('customDomain') ? { custom_url: s.custom_url.trim() || null } : {}),
       updated_at: new Date().toISOString(),
@@ -302,6 +310,41 @@ export default function SettingsPage() {
         <div className="grid2">
           <div className="form-group"><label className="form-label">What do you call “Category”?</label><input className="form-input" maxLength={24} placeholder="Masala, Car Type…" value={s.category_label} onChange={e => setS({ ...s, category_label: e.target.value })} disabled={isStaff} /></div>
           <div className="form-group"><label className="form-label">Order number prefix</label><input className="form-input" maxLength={8} value={s.order_prefix} onChange={e => setS({ ...s, order_prefix: e.target.value })} disabled={isStaff} /></div>
+        </div>
+
+        <div style={{ background: 'var(--paper)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+          <label className="toggle-row" style={{ margin: 0 }}>
+            <input
+              type="checkbox"
+              checked={s.reset_order_no}
+              onChange={e => setS({ ...s, reset_order_no: e.target.checked })}
+              disabled={isStaff}
+            />
+            Reset order numbers cyclically (e.g. cycle back to 1 after reaching max limit)
+          </label>
+          {s.reset_order_no && (
+            <div style={{ marginTop: 12, paddingLeft: 28 }}>
+              <div className="form-group" style={{ marginBottom: 6 }}>
+                <label className="form-label" style={{ fontSize: '.82rem' }}>Max order number before reset</label>
+                <input
+                  className="form-input"
+                  type="number"
+                  inputMode="numeric"
+                  min="10"
+                  max="1000000"
+                  step="1"
+                  placeholder="1000"
+                  value={s.max_order_no}
+                  onChange={e => setS({ ...s, max_order_no: e.target.value })}
+                  disabled={isStaff}
+                  style={{ maxWidth: 220 }}
+                />
+              </div>
+              <div className="text-muted" style={{ fontSize: '.76rem' }}>
+                Order numbering will format as {String(1).padStart(String(s.max_order_no || 1000).length, '0')} up to {s.max_order_no || 1000}, then cycle back to {String(1).padStart(String(s.max_order_no || 1000).length, '0')}.
+              </div>
+            </div>
+          )}
         </div>
 
         <H sub="Untick what you do not need. They disappear from the new-order screen.">Fields on the new-order page</H>

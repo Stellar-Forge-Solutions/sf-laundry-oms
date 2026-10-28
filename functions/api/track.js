@@ -16,12 +16,13 @@ export async function onRequestGet({ request, env }) {
     sb.from('order_events').select('stage_key,created_at').eq('order_id', o.id).order('created_at'),
   ])
   const s = mergeSettings(st)
+  const padLen = (s.reset_order_no && s.max_order_no) ? Math.max(2, String(s.max_order_no).length) : 5
   return json({
     shop: { name: shop.name, tagline: shop.tagline, address: shop.address, mobile: shop.mobile, whatsapp: shop.whatsapp, website: shop.website, gst_no: shop.gst_no, thank_you: shop.thank_you, logo: publicLogo(env, shop.logo_path), verified_badge: !!shop.verified_badge },
     brand: { color: s.brand_color || null, hide_powered: !!s.hide_powered },
     stages: s.stages, category_label: s.category_label, fields: s.fields,
     order: {
-      no: s.order_prefix + String(o.order_no).padStart(5, '0'), customer_name: o.customer_name, created_at: o.created_at, stage_key: o.stage_key, payment_status: o.payment_status,
+      no: s.order_prefix + String(o.order_no).padStart(padLen, '0'), customer_name: o.customer_name, created_at: o.created_at, stage_key: o.stage_key, payment_status: o.payment_status,
       amount_paid: o.amount_paid, subtotal: o.subtotal, cgst_amt: o.cgst_amt, sgst_amt: o.sgst_amt, igst_amt: o.igst_amt, freight: o.freight,
       discount_percent: o.discount_percent || 0, discount_amount: o.discount_amount || 0,
       total: o.total, has_bill: !!o.bill_path || o.bill_source === 'generated', tracking_url: o.tracking_url || null,
