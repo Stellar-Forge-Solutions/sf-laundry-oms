@@ -5,6 +5,7 @@ import { useShop } from '../lib/ShopContext'
 import { useToast } from '../components/Toast'
 import ItemSheet from '../components/ItemSheet'
 import NotifyModal from '../components/NotifyModal'
+import PaymentStatusModal from '../components/PaymentStatusModal'
 import DelayModal from '../components/DelayModal'
 import { StageBadge, PayBadge } from '../components/Badges'
 import { guardWrite, logoDataUrl, logoUrl } from '../lib/shop'
@@ -19,6 +20,7 @@ export default function OrderDetail() {
   const stages = settings.stages, f = settings.fields, tax = taxActive(settings)
   const [o, setO] = useState(null), [items, setItems] = useState([]), [events, setEvents] = useState([]), [products, setProducts] = useState([])
   const [sheet, setSheet] = useState(false), [notify, setNotify] = useState(false)
+  const [paymentModal, setPaymentModal] = useState(false), [pendingStage, setPendingStage] = useState(null)
   const [delayModal, setDelayModal] = useState(false)
   const [pay, setPay] = useState('unpaid'), [paid, setPaid] = useState('')
   const [busy, setBusy] = useState('')
@@ -74,6 +76,36 @@ export default function OrderDetail() {
     toast('Delivery date updated')
     setNotify(true)
   }
+
+  const handlePaymentConfirm = async (selectedStatus, amount = null) => {
+    if (!guardWrite('Changing payment')) return;
+    // Determine amount based on selected status
+    let finalAmount = 0;
+    if (selectedStatus === 'paid') {
+      finalAmount = Number(o.total);
+    } else if (selectedStatus === 'partial') {
+      finalAmount = amount !== null ? Number(amount) : Number(paid);
+    }
+
+    const { error } = await supabase.from('orders').update({
+      payment_status: selectedStatus,
+      amount_paid: finalAmount,
+      updated_at: new Date().toISOString(),
+    }).eq('id', o.id);
+
+    if (error) {
+      toast(error.message, 'error');
+      setPaymentModal(false);
+      return;
+    }
+    toast('Payment updated');
+    // after payment update, move to the pending stage (Delivered)
+    if (pendingStage) {
+      await move(pendingStage);
+      setPendingStage(null);
+    }
+    setPaymentModal(false);
+  };
 
   const savePay = async () => {
     if (!guardWrite('Changing payment')) return
@@ -189,7 +221,18 @@ export default function OrderDetail() {
         </div>
         <div className="flex gap-2 mt-3" style={{ flexWrap: 'wrap' }}>
           {prev && <button className="btn btn-ghost" disabled={!!busy || !canWrite} onClick={() => move(prev)}>← Back to {prev.label}</button>}
-          {next && <button className="btn btn-primary" style={{ flex: 1 }} disabled={!!busy || !canWrite} onClick={() => move(next)}>{busy === 'stage' ? 'Moving…' : `Move to ${next.label} →`}</button>}
+          {next && (
+  <button className="btn btn-primary" style={{ flex: 1 }} disabled={!!busy || !canWrite} onClick={() => {
+    if (next.key === 'delivered') {
+      setPendingStage(next);
+      setPaymentModal(true);
+    } else {
+      move(next);
+    }
+  }}>
+    {busy === 'stage' ? 'Moving…' : `Move to ${next.label} →`}
+  </button>
+)}
           {o.stage_key === 'processing' && (
             <button
               className="btn btn-secondary"
@@ -339,12 +382,12 @@ export default function OrderDetail() {
       </div>
 
       {sheet && <ItemSheet item={null} products={products} settings={settings} onSave={addItem} onClose={() => setSheet(false)} />}
-      {trackingModal && (
-        <TrackingModal
-          order={o}
-          onSave={handleTrackingSave}
-          onSkip={handleTrackingSkip}
-          onClose={() => setTrackingModal(false)}
+      {paymentModal && (
+        <PaymentStatusModal
+          open={paymentModal}
+          total={Number(o.total)}
+          onClose={() => setPaymentModal(false)}
+          onConfirm={handlePaymentConfirm}
         />
       )}
       {delayModal && (
