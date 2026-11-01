@@ -58,6 +58,7 @@ export async function onRequestPost({ request, env }) {
       <table width="100%" cellpadding="0" cellspacing="0">${rows}</table>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0 4px">
         ${tot('Subtotal', inr(o.subtotal))}${Number(o.tax_total) > 0 ? tot('Tax', inr(o.tax_total)) : ''}${Number(o.freight) > 0 ? tot('Freight / delivery', inr(o.freight)) : ''}
+        ${Number(o.round_off) !== 0 ? tot('Round Off', `${Number(o.round_off) > 0 ? '+' : '-'} ${inr(Math.abs(Number(o.round_off)))}`) : ''}
         ${tot('Total', inr(o.total), true)}${tot('Payment', PAY[o.payment_status] + (o.payment_status === 'partial' ? ` (${inr(o.amount_paid)} received)` : ''))}</table>
       <div style="margin-top:22px">${btn(track, 'Track your order', true)}${o.tracking_url ? btn(o.tracking_url, 'Track courier shipment', false) : ''}${bill ? btn(bill, 'Download bill', false) : ''}</div>
       <p style="margin:18px 0 0;font-size:13px;color:#6b7c93;line-height:1.5">${esc(shop.thank_you || 'Thank you for your business.')}</p>

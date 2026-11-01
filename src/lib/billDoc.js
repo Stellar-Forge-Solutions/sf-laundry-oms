@@ -8,6 +8,7 @@ export function totalsList(o, settings) {
   if (Number(o.igst_amt) > 0) rows.push(['IGST', o.igst_amt])
   if (Number(o.discount_amount) > 0) rows.push([`Discount${Number(o.discount_percent) > 0 ? ` (${Number(o.discount_percent)}%)` : ''}`, -Number(o.discount_amount)])
   if (Number(o.freight) > 0) rows.push(['Freight / delivery', o.freight])
+  if (Number(o.round_off) !== 0) rows.push(['Round Off', o.round_off])
   return rows
 }
 export const balanceDue = (o) => o.payment_status === 'paid' ? 0 : o.payment_status === 'refunded' ? 0 : Math.max(0, Number(o.total) - Number(o.amount_paid || 0))

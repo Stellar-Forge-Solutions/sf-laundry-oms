@@ -310,6 +310,12 @@ export default function BillPage() {
                 <span>{inr(order.freight)}</span>
               </div>
             )}
+            {Number(order.round_off) !== 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+                <span style={{ color: '#64748b' }}>Round Off</span>
+                <span>{Number(order.round_off) > 0 ? '+' : '-'} {inr(Math.abs(Number(order.round_off)))}</span>
+              </div>
+            )}
 
             <div style={{
               display: 'flex',

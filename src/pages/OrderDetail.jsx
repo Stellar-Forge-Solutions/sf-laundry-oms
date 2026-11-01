@@ -119,7 +119,7 @@ export default function OrderDetail() {
   const addItem = async (it) => {
     if (!guardWrite('Adding items')) return
     const all = [...items, it]
-    const t = calcOrder(all, Number(o.freight))
+    const t = calcOrder(all, Number(o.freight), Number(o.discount_amount) || 0)
     const itemPayload = { order_id: o.id, shop_id: shop.id, product_id: it.product_id || null, name: it.name, category: it.category || null, description: it.description || null, unit: it.unit || null, cgst_pct: it.cgst_pct || 0, sgst_pct: it.sgst_pct || 0, igst_pct: it.igst_pct || 0, ...itemRow(it) }
     let { error } = await supabase.from('order_items').insert(itemPayload)
     if (error && error.message?.includes('pieces')) {
@@ -129,7 +129,7 @@ export default function OrderDetail() {
     }
     if (error) return toast(error.message, 'error')
     const stillPaid = o.payment_status === 'paid'   // total changed: a fully-paid order becomes partly paid
-    await supabase.from('orders').update({ ...orderRowTotals(t), ...(stillPaid ? { payment_status: 'partial' } : {}), updated_at: new Date().toISOString() }).eq('id', o.id)
+    await supabase.from('orders').update({ ...orderRowTotals(t, o.discount_percent), ...(stillPaid ? { payment_status: 'partial' } : {}), updated_at: new Date().toISOString() }).eq('id', o.id)
     setSheet(false); toast(stillPaid ? 'Item added. Payment is now “Partly paid” because the total grew' : 'Item added'); load()
   }
 
@@ -322,6 +322,7 @@ export default function OrderDetail() {
               </div>
             )}
             {Number(o.freight) > 0 && <div className="tot-row"><span>Freight / delivery</span><span>{inr(o.freight)}</span></div>}
+            {Number(o.round_off) !== 0 && <div className="tot-row"><span>Round Off</span><span>{Number(o.round_off) > 0 ? '+' : '-'} {inr(Math.abs(Number(o.round_off)))}</span></div>}
             <div className="tot-row grand"><span>Total</span><span>{inr(o.total)}</span></div>
             {o.notes && <div className="hint-box mt-3" style={{ marginBottom: 0 }}>📝 {o.notes}</div>}
           </div>

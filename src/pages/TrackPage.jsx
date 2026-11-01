@@ -176,6 +176,7 @@ export default function TrackPage() {
           </div>
         )}
         {Number(o.freight) > 0 && <div className="tot-row"><span>Freight / delivery</span><span>{inr(o.freight)}</span></div>}
+        {Number(o.round_off) !== 0 && <div className="tot-row"><span>Round Off</span><span>{Number(o.round_off) > 0 ? '+' : '-'} {inr(Math.abs(Number(o.round_off)))}</span></div>}
         <div className="tot-row grand"><span>Total</span><span>{inr(o.total)}</span></div>
         <div className="tot-row" style={{ alignItems: 'center', marginTop: 8 }}>
           <span>Payment Status</span>

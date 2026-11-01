@@ -114,12 +114,14 @@ export function calcOrder(items, freight = 0, discountAmt = 0) {
   for (const it of items) { const l = calcLine(it); t.subtotal += l.base; t.cgst += l.cgst; t.sgst += l.sgst; t.igst += l.igst }
   const tax = r2(t.cgst + t.sgst + t.igst), f = r2(freight)
   const d = Math.min(Math.max(0, r2(discountAmt)), r2(t.subtotal + tax))
-  const total = Math.max(0, r2(t.subtotal + tax - d + f))
-  return { subtotal: r2(t.subtotal), cgst: r2(t.cgst), sgst: r2(t.sgst), igst: r2(t.igst), tax, discount: d, freight: f, total }
+  const unroundedTotal = Math.max(0, r2(t.subtotal + tax - d + f))
+  const total = Math.round(unroundedTotal)
+  const roundOff = r2(total - unroundedTotal)
+  return { subtotal: r2(t.subtotal), cgst: r2(t.cgst), sgst: r2(t.sgst), igst: r2(t.igst), tax, discount: d, freight: f, unroundedTotal, roundOff, total }
 }
 export const orderRowTotals = (t, discount_percent = 0) => ({
   subtotal: t.subtotal, cgst_amt: t.cgst, sgst_amt: t.sgst, igst_amt: t.igst,
-  tax_total: t.tax, freight: t.freight, total: t.total,
+  tax_total: t.tax, freight: t.freight, round_off: t.roundOff || 0, total: t.total,
   discount_amount: t.discount || 0, discount_percent: Number(discount_percent) || 0,
 })
 export const isKgUnit = (u) => {
