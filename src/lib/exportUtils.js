@@ -3,9 +3,9 @@ import { guardWrite } from './shop'
 import { orderNo, stageLabel, PAY, fmtDate, r2 } from './orderUtils'
 
 export function exportRows(orders, settings) {
-  const head = ['Order No', 'Date', 'Customer', 'WhatsApp', 'Email', 'Status', 'Payment', 'Subtotal', 'Tax', 'Discount', 'Freight', 'Total', 'Paid']
+  const head = ['Order No', 'Date', 'Customer', 'WhatsApp', 'Email', 'Status', 'Payment', 'Subtotal', 'Tax', 'Discount', 'Freight', 'Round Off', 'Total', 'Paid']
   const body = orders.map(o => [orderNo(o, settings), fmtDate(o.created_at), o.customer_name, o.customer_whatsapp || '', o.customer_email || '',
-    stageLabel(settings.stages, o.stage_key), PAY[o.payment_status].label, r2(o.subtotal), r2(o.tax_total), r2(o.discount_amount || 0), r2(o.freight), r2(o.total), r2(o.amount_paid)])
+    stageLabel(settings.stages, o.stage_key), PAY[o.payment_status].label, r2(o.subtotal), r2(o.tax_total), r2(o.discount_amount || 0), r2(o.freight), r2(o.round_off || 0), r2(o.total), r2(o.amount_paid)])
   return { head, body }
 }
 
@@ -31,9 +31,9 @@ export async function exportOrders(kind, orders, settings, label = 'orders') {
     doc.setFontSize(14).text(`Orders: ${label}`, 14, 14)
     const sum = (i) => r2(body.reduce((t, r) => t + Number(r[i]), 0))
     autoTable(doc, {
-      startY: 20, head: [['Order', 'Date', 'Customer', 'Status', 'Payment', 'Subtotal', 'Tax', 'Discount', 'Freight', 'Total']],
-      body: body.map(r => [r[0], r[1], r[2], r[5], r[6], r[7], r[8], r[9], r[10], r[11]]),
-      foot: [['', '', '', '', `${body.length} orders`, sum(7), sum(8), sum(9), sum(10), sum(11)]],
+      startY: 20, head: [['Order', 'Date', 'Customer', 'Status', 'Payment', 'Subtotal', 'Tax', 'Discount', 'Freight', 'Round Off', 'Total']],
+      body: body.map(r => [r[0], r[1], r[2], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12]]),
+      foot: [['', '', '', '', `${body.length} orders`, sum(7), sum(8), sum(9), sum(10), sum(11), sum(12)]],
       headStyles: { fillColor: [15, 25, 35] }, footStyles: { fillColor: [226, 232, 240], textColor: 0 }, styles: { fontSize: 8.5 },
     })
     doc.save(name + '.pdf')

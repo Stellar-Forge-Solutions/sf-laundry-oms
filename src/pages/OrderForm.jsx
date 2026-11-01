@@ -591,6 +591,7 @@ export default function OrderForm() {
           </div>
         )}
         {totals.freight > 0 && <div className="tot-row"><span>Freight / delivery</span><span>{inr(totals.freight)}</span></div>}
+        {totals.roundOff !== 0 && <div className="tot-row"><span>Round Off</span><span>{totals.roundOff > 0 ? '+' : '-'} {inr(Math.abs(totals.roundOff))}</span></div>}
         <div className="tot-row grand"><span>Total</span><span>{inr(totals.total)}</span></div>
       </div>
 
