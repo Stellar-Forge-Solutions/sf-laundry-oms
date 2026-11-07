@@ -90,6 +90,9 @@ begin
     on conflict (shop_id, txn_date) where source = 'billing' do update set amount = excluded.amount, description = excluded.description;
   end if;
 end $$;
+-- Internal helper only: it trusts p_shop and runs as definer, so it must not be callable through the API.
+-- It is invoked solely from trg_bills_sync_sales() and set_sales_sync(), which are SECURITY DEFINER and run as the owner.
+revoke execute on function sync_billing_sales(uuid, date) from public, anon, authenticated;
 
 create function trg_bills_sync_sales() returns trigger language plpgsql security definer set search_path = public as $$
 declare v_old date; v_new date;
