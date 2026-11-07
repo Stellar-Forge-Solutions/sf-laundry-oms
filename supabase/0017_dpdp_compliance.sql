@@ -34,12 +34,28 @@ create or replace function public.cleanup_expired_data(retention_months integer 
 returns json
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 declare
   cutoff_date timestamptz;
   expired_otp_count integer := 0;
   anonymized_orders_count integer := 0;
+  jwt_role text;
 begin
+  -- Defence in depth: this is a global maintenance routine, never callable by API clients.
+  jwt_role := coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')::json ->> 'role'
+  );
+  if jwt_role is not null and jwt_role <> 'service_role' then
+    raise exception 'insufficient_privilege' using errcode = '42501';
+  end if;
+
+  -- Reject values that would yield a cutoff in the present/future and anonymize live data.
+  if retention_months is null or retention_months < 1 then
+    raise exception 'retention_months must be a positive integer' using errcode = '22023';
+  end if;
+
   cutoff_date := now() - (retention_months || ' months')::interval;
 
   -- A. Clean up expired / used password reset OTP tokens older than 24 hours
@@ -66,3 +82,7 @@ begin
   );
 end;
 $$;
+
+-- Restrict execution to the privileged backend (service_role / scheduler running as the owner).
+revoke execute on function public.cleanup_expired_data(integer) from public, anon, authenticated;
+grant execute on function public.cleanup_expired_data(integer) to service_role;
