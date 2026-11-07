@@ -53,6 +53,7 @@ export function calculateOverage(ordersCount, plan, overageLimit = 100, overageR
   const included = plan.includedOrders  // already customised by getPlan if admin set custom_order_limit
   const used = Number(ordersCount) || 0
   const isUnlimited = included === Infinity
+  const isPro = plan.key === 'pro'
 
   if (isUnlimited) {
     return {
@@ -77,9 +78,9 @@ export function calculateOverage(ordersCount, plan, overageLimit = 100, overageR
   const remainingIncluded = Math.max(0, included - used)
   const limit = Number(overageLimit ?? 100)
 
-  // Blocked if overage limit is set and overage cost has reached or exceeded limit
-  // Note: if limit is 0, any overage is immediately blocked
-  const isOverageBlocked = overageOrders > 0 && (limit === 0 || overageAmount >= limit)
+  // Pro plan is never blocked — they are dedicated customers who always pay for overage
+  // Free/Basic: blocked if overage limit is set and overage cost has reached or exceeded limit
+  const isOverageBlocked = !isPro && overageOrders > 0 && (limit === 0 || overageAmount >= limit)
 
   return {
     used,
