@@ -456,8 +456,8 @@ export default function SettingsPage() {
         <Link to="/connect-printer" className="btn btn-secondary btn-sm">🖨️ How to connect a thermal printer</Link>
 
         {hasExpense && isOwner && <>
-          <H sub="Each day, the value of orders marked Delivered is added to your Expense Tracker as one sale. Returned orders are taken out again.">Expense Tracker</H>
-          <label className="toggle-row"><input type="checkbox" checked={!!shop.sync_orders_sales} disabled={!canWrite} onChange={e => toggleSync(e.target.checked)} />Send delivered orders to Expense Tracker as sales</label>
+          <H sub="Each day, the amount collected from paid and partially paid orders is added to your Expense Tracker as one sale.">Expense Tracker</H>
+          <label className="toggle-row"><input type="checkbox" checked={!!shop.sync_orders_sales} disabled={!canWrite} onChange={e => toggleSync(e.target.checked)} />Send paid orders to Expense Tracker as sales</label>
         </>}
 
         {isOwner && <>
