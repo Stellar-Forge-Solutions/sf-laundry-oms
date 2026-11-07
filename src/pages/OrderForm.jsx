@@ -32,7 +32,6 @@ export default function OrderForm() {
   const [billOption, setBillOption] = useState('none') // 'none' | 'generate' | 'upload'
   const [billFile, setBillFile] = useState(null)
   const [busy, setBusy] = useState(false), [loading, setLoading] = useState(!!id), [err, setErr] = useState('')
-  const [overageConfirmed, setOverageConfirmed] = useState(false)
 
   useEffect(() => {
     supabase.from('order_products').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('name').limit(1000).then(({ data }) => setProducts(data || []))
@@ -367,51 +366,6 @@ export default function OrderForm() {
         </div>
       )}
 
-      {/* 100% Inline confirmation screen before creating an overage order */}
-      {!id && monthlyUsage?.isAtLimit && !monthlyUsage?.isOverageBlocked && !overageConfirmed && (
-        <div className="card" style={{ background: '#fffbeb', borderColor: '#fcd34d', marginBottom: 16, padding: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{ fontSize: '1.4rem' }}>ℹ️</div>
-            <div style={{ flex: 1 }}>
-              <h3 style={{ margin: '0 0 6px', color: '#78350f', fontSize: '1rem' }}>
-                You've used all {monthlyUsage.included} included orders this month
-              </h3>
-              <p style={{ margin: '0 0 14px', color: '#92400e', fontSize: '.85rem', lineHeight: 1.5 }}>
-                Extra orders cost <b>₹{monthlyUsage.overageRate != null ? monthlyUsage.overageRate : '0.30'} each</b> (metered overage) and will be billed at the end of the month.
-                {plan.key === 'free' && (
-                  <span> You can also upgrade to <b>Basic (₹29/month)</b> for 300 orders/month and an ad-free experience.</span>
-                )}
-              </p>
-              <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={() => setOverageConfirmed(true)}
-                >
-                  Continue creating order (₹{monthlyUsage.overageRate != null ? monthlyUsage.overageRate : '0.30'})
-                </button>
-                <a
-                  className="btn btn-secondary btn-sm"
-                  href={upgradeUrl(shop, user, 'basic')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ textDecoration: 'none' }}
-                >
-                  ⭐ Upgrade to Basic (₹29/mo)
-                </a>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => nav(-1)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="section-title" style={{ marginBottom: 12 }}>Customer</div>
 
@@ -672,9 +626,9 @@ export default function OrderForm() {
       <button
         className="btn btn-primary btn-full btn-lg"
         onClick={save}
-        disabled={busy || (!id && monthlyUsage?.isOverageBlocked) || (!id && monthlyUsage?.isAtLimit && !overageConfirmed)}
+        disabled={busy || (!id && monthlyUsage?.isOverageBlocked)}
       >
-        {busy ? 'Saving…' : id ? 'Save changes' : (!id && monthlyUsage?.isAtLimit && !overageConfirmed) ? 'Confirm Overage to Create' : 'Create order'}
+        {busy ? 'Saving…' : id ? 'Save changes' : 'Create order'}
       </button>
 
       {sheet && <ItemSheet item={sheet.item} products={products} settings={settings} onSave={setItem} onClose={() => setSheet(null)} />}
