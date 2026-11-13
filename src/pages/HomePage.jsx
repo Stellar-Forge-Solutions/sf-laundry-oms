@@ -61,7 +61,7 @@ export default function HomePage() {
                 {monthlyUsage.overageOrders} extra orders ({inr(monthlyUsage.overageAmount)})
               </span>
             ) : (
-              <span>Plan: {plan.name}</span>
+              <span>Monthly Volume</span>
             )}
           </div>
         </div>
@@ -111,8 +111,6 @@ export default function HomePage() {
             <b style={{ flexShrink: 0 }}>{inr(o.total)}</b>
           </Link>))}
       </div>
-      <PlanCard compact />
-
       {/* AdSense Unit (Free plan only, rendered below content after real data loads) */}
       {!loading && rows.length > 0 && (
         <AdBanner slotId="dashboard_home" pageName="Dashboard Home" />

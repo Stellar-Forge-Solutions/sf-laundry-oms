@@ -309,8 +309,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {isOwner && <PlanCard />}
-
       <div className="card">
         <H>Shop details</H>
         {inp('Shop name', 'name', { disabled: isStaff })}{inp('Second line (tagline)', 'tagline', { disabled: isStaff })}{inp('Address', 'address', { disabled: isStaff })}
